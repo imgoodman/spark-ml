@@ -56,6 +56,7 @@ def dealwithNB(record):
     return LabeledPoint(label,Vectors.dense(features))
 
 data=records.map(dealwith)
+total_count=data.count()
 #为了朴素贝叶斯 
 nbdata=records.map(dealwithNB)
 #print data.first()
@@ -65,15 +66,66 @@ maxTreeDepth=5
 
 #训练逻辑回归模型
 lrModel=LogisticRegressionWithSGD.train(data, numIterations)
+
 #训练支持向量机模型
 svmModel=SVMWithSGD.train(data,numIterations)
+
 #训练朴素贝叶斯模型
 nbModel=NaiveBayes.train(nbdata)
+
 #训练决策树模型
 #dtModel=DecisionTree.train(data, Algo.Classification, Entropy, maxDepth)
 dtModel=DecisionTree.trainClassifier(data,numClasses=2, categoricalFeaturesInfo={},impurity='entropy', maxDepth=maxTreeDepth, maxBins=32 )
 
-dataPoint=data.first()
+#dataPoint=data.first()
 
-lrPrediction=lrModel.predict(dataPoint.features)
-print "true label is: %f; logistic regression predict is: %f" % (dataPoint.label, lrPrediction)
+#lrPrediction=lrModel.predict(dataPoint.features)
+#print "true label is: %f; logistic regression predict is: %f" % (dataPoint.label, lrPrediction)
+#逻辑回归准确率
+def predict_with_lr(record):
+    if lrModel.predict(record.features)==record.label:
+        return 1.0
+    else:
+        return 0.0
+def predict_with_lr_model():
+    lrTotalCorrect=data.map(predict_with_lr).sum()
+    print "logistic regression accuracy is: %f (%d / %d)" % (lrTotalCorrect/total_count,lrTotalCorrect, total_count)
+#predict_with_lr_model()
+
+
+#支持向量机正确率
+def predict_with_svm(record):
+    if svmModel.predict(record.features)==record.label:
+        return 1.0
+    else:
+        return 0.0
+
+def predict_with_svm_model():
+    svmTotalCorrect=data.map(predict_with_svm).sum()
+    print "svm accuracy is: %f (%d / %d)" % (svmTotalCorrect/total_count, svmTotalCorrect, total_count)
+#predict_with_svm_model()
+
+#朴素贝叶斯正确率
+def predict_with_nb(record):
+    if nbModel.predict(record.features)==record.label:
+        return 1.0
+    else:
+        return 0.0
+
+def predict_with_nb_model():
+    nbTotalCorrect=nbdata.map(predict_with_nb).sum()
+    print "naive bayes accuracy is: %f (%d / %d)" % (nbTotalCorrect/total_count, nbTotalCorrect, total_count)
+#predict_with_nb_model()
+
+#决策树正确率
+broadcastScore=sc.broadcast(0.5)
+def predict_with_dt(record):
+    if dtModel.predict(record.features)>record.label:
+        return 1.0
+    else:
+        return 0.0
+
+def predict_with_dt_model():
+    dtTotalCorrect=data.map(predict_with_dt).sum()
+    print "decision tree accuracy is: %f (%d / %d)" % (dtTotalCorrect/total_count, dtTotalCorrect, total_count)
+predict_with_dt_model()
