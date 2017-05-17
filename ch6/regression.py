@@ -54,6 +54,20 @@ def extract_features(record):
 def extract_label(record):
     return float(record[-1])
 
-data=records.map(lambda r: LabeledPoint(extract_label(r), extract_features(r)))
+def extract_features_dt(record):
+    return np.array([float(r) for r in record[2:14]])
 
-print data.first()
+data=records.map(lambda r: LabeledPoint(extract_label(r), extract_features(r)))
+first_data=data.first()
+print "raw data: "+str(records.first()[2:])
+
+print "linear model feature vector: " + str(first_data.features)
+print "length of linear model feature vector: %d" % len(first_data.features)
+print "label of linear model fetaure: %f" % first_data.label
+
+data_dt=records.map(lambda r: LabeledPoint(extract_label(r), extract_features_dt(r)))
+first_data_dt=data_dt.first()
+print "decision tree feature vector: " + str(first_data_dt.features)
+print "length of decision tree feature vector: %d" % len(first_data_dt.features)
+
+
