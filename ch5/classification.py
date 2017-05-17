@@ -10,6 +10,8 @@ from pyspark.mllib.tree import DecisionTree
 #from pyspark.mllib.tree.configuration import Algo
 #from pyspark.mllib.tree.impurity import Entropy
 
+from pyspark.mllib.evaluation import BinaryClassificationMetrics
+
 data_path="/usr/bigdata/data/train_noheader.tsv"
 
 sc=SparkContext("local[2]","spark classification app")
@@ -128,4 +130,14 @@ def predict_with_dt(record):
 def predict_with_dt_model():
     dtTotalCorrect=data.map(predict_with_dt).sum()
     print "decision tree accuracy is: %f (%d / %d)" % (dtTotalCorrect/total_count, dtTotalCorrect, total_count)
-predict_with_dt_model()
+#predict_with_dt_model()
+
+#计算模型的评估指标
+def evaluate_lrmodel():
+    scoreAndLabels=data.map(lambda point: (float(lrModel.predict(point.features)), point.label))
+    metrics=BinaryClassificationMetrics(scoreAndLabels)
+    #area under prcesion-recall
+    print "area under PR %f" % metrics.areaUnderPR
+    #area under ROC
+    print "area under ROC %f" % metrics.areaUnderROC
+evaluate_lrmodel()
