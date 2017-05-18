@@ -109,6 +109,17 @@ error of linear model
 mse=true_vs_predicted.map(lambda (actual,pred): squared_error(actual,pred)).mean()
 mae=true_vs_predicted.map(lambda (actual,pred):abs_error(actual,pred)).mean()
 rmsle=true_vs_predicted.map(lambda (actual,pred):squared_log_error(actual,pred)).mean()
-print "Mean Squared Error of Linear Model: %f" % mse
-print "Mean Absolute Error of Linear Model: %f" % mae
-print "Root Mean Squared Log Error of Linear Model: %f" % rmsle
+#print "Mean Squared Error of Linear Model: %f" % mse
+#print "Mean Absolute Error of Linear Model: %f" % mae
+#print "Root Mean Squared Log Error of Linear Model: %f" % rmsle
+
+
+
+"""
+transfer target value with log, sqrt
+to get normal distribution
+"""
+log_data=data.map(lambda p: LabeledPoint(np.log(p.label),p.features))
+log_targets=records.map(lambda r : np.log(float(r[-1])))
+log_lrmodel=LinearRegressionWithSGD.train(log_data, iterations=10,step=0.1)
+sqrt_targets=records.map(lambda r: np.sqrt(float(r[-1])))
