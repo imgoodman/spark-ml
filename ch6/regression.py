@@ -123,3 +123,73 @@ log_data=data.map(lambda p: LabeledPoint(np.log(p.label),p.features))
 log_targets=records.map(lambda r : np.log(float(r[-1])))
 log_lrmodel=LinearRegressionWithSGD.train(log_data, iterations=10,step=0.1)
 sqrt_targets=records.map(lambda r: np.sqrt(float(r[-1])))
+
+
+
+"""
+cross validation
+with different parameters
+to evaluate performance of model
+"""
+data_with_idx=data.zipWithIndex().map(lambda (k,v):(v,k))
+test=data_with_idx.sample(False, 0.2, 42)
+train=data_with_idx.subtractByKey(test)
+train_data=train.map(lambda (k,v):v)
+test_data=test.map(lambda (k,v):v)
+train_size=train_data.count()
+test_size=test_data.count()
+#print "train data size: %d" % train_size
+#print "test data size: %d" % test_size
+
+"""
+evaluate the performance of model 
+in different params
+"""
+def evaluate(train,test,iterations,step,regParam,regType,intercept):
+    model=LinearRegressionWithSGD.train(train, iterations, step, regParam=regParam, regType=regType, intercept=intercept)
+    tp=test.map(lambda p:(p.label, model.predict(p.features)))
+    rmsle=np.sqrt(tp.map(lambda (t,p):squared_log_error(t,p)).mean())
+    return rmsle
+
+"""
+iterations influence
+"""
+def evaluate_iterations():
+    params=[1,5,10,20,50,100]
+    metrics=[evaluate(train_data, test_data, p, 0.01, 0.0, 'l2', False) for p in params]
+    print params
+    print metrics
+#evaluate_iterations()
+
+
+"""
+step influence
+"""
+def evaluate_step():
+    params=[0.01, 0.025,0.05,0.1,1.0]
+    metrics=[evaluate(train_data, test_data, 10, p, 0.0, 'l2', False) for p in params]
+    print params
+    print metrics
+#evaluate_step()
+
+
+"""
+regulation L2 influence
+"""
+def evaluate_l2():
+    params=[0.0, 0.01, 0.1, 1.0, 5.0, 10.0, 20.0]
+    metrics=[evaluate(train_data, test_data, 10, 0.1, p, 'l2', False) for p in params]
+    print params
+    print metrics
+#evaluate_l2()
+
+
+"""
+regulation L1 influence
+"""
+def evaluate_l1():
+    params=[0.0, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]
+    metrics=[evaluate(train_data, test_data, 10, 0.1, p, 'l1', False) for p in params]
+    print params
+    print metrics
+evaluate_l1()
