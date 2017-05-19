@@ -2,7 +2,10 @@ from pyspark import SparkContext
 from pyspark.mllib.recommendation import ALS,Rating
 from pyspark.mllib.linalg import Vectors
 from pyspark.mllib.linalg.distributed import RowMatrix
+from pyspark.mllib.clustering import KMeans
 import numpy as np
+from breeze.linalg import *
+from breeze.numerics import pow
 
 sc=SparkContext("local[2]","spark cluster app")
 movie_file_path="/usr/bigdata/data/ml-100k/u.item"
@@ -49,12 +52,41 @@ movieMatrixSummary=movieMatrix.computeColumnSummaryStatistics()
 userMatrix=RowMatrix(userVectors)
 userMatrixSummary=userMatrix.computeColumnSummaryStatistics()
 
-print "movie factors mean: " 
-print movieMatrixSummary.mean()
-print "movie factors variance: "
-print movieMatrixSummary.variance()
+#print "movie factors mean: " 
+#print movieMatrixSummary.mean()
+#print "movie factors variance: "
+#print movieMatrixSummary.variance()
 
-print "user factors mean: " 
-print userMatrixSummary.mean()
-print "user factors mean: "
-print userMatrixSummary.mean()
+#print "user factors mean: " 
+#print userMatrixSummary.mean()
+#print "user factors mean: "
+#print userMatrixSummary.mean()
+
+
+numCLusters=5
+numIterations=10
+numRuns=3
+
+movieClusterModel=KMeans.train(movieVectors, numClusters, numIterations, numRuns)
+
+userClusterModel=KMeans.train(userVectors, numClusters, numIterations, numRuns)
+
+
+def computeDistance(v1,v2):
+    return pow(v1-v2).sum()
+
+
+titlesWithFactors=titlesAndGenres.join(movieFactors)
+
+def movie_dist(factor):
+    pred=movieClusterModel.predict(factor)
+    clusterCenter=movieClusterModel.clusterCenters(pred)
+    return computeDistance(DenseVector(clusterCenter), DenseVector(factor))
+
+moviesAssigned=titlesWithFactors.map(lambda (id,title,genres,factor):(id, title, genres, movieClusterModel.predict(factor), movie_dist(factor) ))
+
+clusterAssignments=moviesAssigned.groupByKey(lambda (id,title,genres,cluster,dist):cluster).collectAsMap()
+
+print clusterAssignments[0][:5]
+
+movieCost=movieClusterModel.computeCost(movieVectors)
